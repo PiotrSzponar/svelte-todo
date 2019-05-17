@@ -1,5 +1,88 @@
 <script>
+  import { fade } from "svelte/transition";
 
+  const ENTER_KEY = 13;
+
+  let currentFilter = "all";
+  let newTodo = "";
+
+  let todos = [
+    {
+      id: 1,
+      completed: false,
+      title: "Go to store",
+      editing: false
+    },
+    {
+      id: 2,
+      completed: false,
+      title: "Finish Svelte tutorial",
+      editing: false
+    },
+    {
+      id: 3,
+      completed: false,
+      title: "Take over world",
+      editing: false
+    }
+  ];
+
+  const addTodo = e => {
+    if (e.which === ENTER_KEY) {
+      todos = [
+        ...todos,
+        {
+          id: todos.length + 1,
+          completed: false,
+          title: newTodo,
+          editing: false
+        }
+      ];
+      newTodo = "";
+    }
+  };
+
+  const deleteTodo = id => {
+    todos = todos.filter(todo => todo.id !== id);
+  };
+
+  const checkAllTodos = e => {
+    todos.forEach(todo => (todo.completed = e.target.checked));
+    todos = todos;
+  };
+
+  const clearCompleted = () => {
+    todos = todos.filter(todo => !todo.completed);
+  };
+
+  const updateFilter = filter => {
+    currentFilter = filter;
+  };
+
+  const editTodo = todo => {
+    todo.editing = true;
+    todos = todos;
+  };
+
+  const doneEdit = todo => {
+    todo.editing = false;
+    todos = todos;
+  };
+
+  const doneEditEnter = (todo, e) => {
+    if (e.which === ENTER_KEY) {
+      doneEdit(todo);
+    }
+  };
+
+  $: todosRemaining = todos.filter(todo => !todo.completed).length;
+
+  $: filteredTodos =
+    currentFilter === "all"
+      ? todos
+      : currentFilter === "completed"
+      ? todos.filter(todo => todo.completed)
+      : todos.filter(todo => !todo.completed);
 </script>
 
 <style lang="scss">
@@ -12,6 +95,15 @@
     display: block;
     margin: 20px auto;
     height: 75px;
+  }
+
+  .info {
+    font-size: 16px;
+    color: #aaa;
+    text-align: center;
+    margin: 10px auto 20px;
+    padding: 0;
+    list-style: none;
   }
 
   .todo-input {
@@ -44,13 +136,11 @@
     }
 
     &-edit {
-      font-size: 24px;
       color: #2c3e50;
-      margin-left: 12px;
+      margin-left: 45px;
       width: 100%;
-      padding: 10px;
-      border: 1px solid #ccc; //override defaults
-      font-family: "Avenir", Helvetica, Arial, sans-serif;
+      font-size: 20px;
+
       &:focus {
         outline: none;
       }
@@ -107,37 +197,79 @@
 </style>
 
 <div class="container">
-  <img src={'/img/svelte-logo-horizontal.svg'} alt="svelte logo" class="logo" />
+  <img
+    src={'./img/svelte-logo-horizontal.svg'}
+    alt="svelte logo"
+    class="logo" />
 
-  <input type="text" class="todo-input" placeholder="What needs to be done" />
+  <ul class="info">
+    <li>➧ Press Enter to add new item.</li>
+    <li>➧ Click at item name to edit it.</li>
+  </ul>
 
-  <div class="todo-item">
-    <div class="todo-item-left">
-      <input type="checkbox" />
-      <div class="todo-item-label">title</div>
+  <input
+    type="text"
+    class="todo-input"
+    placeholder="What needs to be done"
+    bind:value={newTodo}
+    on:keydown={addTodo} />
+
+  {#each filteredTodos as todo}
+    <div class="todo-item">
+      <div class="todo-item-left" transition:fade>
+        {#if !todo.editing}
+          <input type="checkbox" bind:checked={todo.completed} />
+          <div
+            class="todo-item-label"
+            class:completed={todo.completed}
+            on:click={() => editTodo(todo)}>
+             {todo.title}
+          </div>
+        {:else}
+          <input
+            type="text"
+            class="todo-item-edit"
+            bind:value={todo.title}
+            on:blur={() => doneEdit(todo)}
+            on:keydown={e => doneEditEnter(todo, e)}
+            autofocus />
+        {/if}
+      </div>
+      <div class="remove-item" on:click={() => deleteTodo(todo.id)}>×</div>
     </div>
-    <div class="remove-item">×</div>
-  </div>
+  {/each}
 
   <div class="extra-container">
     <div>
       <label>
-        <input type="checkbox" />
+        <input type="checkbox" on:change={checkAllTodos} />
         Check All
       </label>
     </div>
-    <div>10 items left</div>
+    <div>{todosRemaining} items left</div>
   </div>
 
   <div class="extra-container">
     <div>
-      <button>All</button>
-      <button>Active</button>
-      <button>Completed</button>
+      <button
+        on:click={() => updateFilter('all')}
+        class:active={currentFilter === 'all'}>
+        All
+      </button>
+      <button
+        on:click={() => updateFilter('active')}
+        class:active={currentFilter === 'active'}>
+        Active
+      </button>
+      <button
+        on:click={() => updateFilter('completed')}
+        class:active={currentFilter === 'completed'}>
+        Completed
+      </button>
     </div>
 
     <div>
-      <button>Clear Completed</button>
+      <button on:click={clearCompleted}>Clear Completed</button>
     </div>
   </div>
 </div>
